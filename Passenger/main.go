@@ -88,28 +88,6 @@ func GetPassengerInfo(db *sql.DB) {
 	}
 }
 
-//Get passenger's trip history record (Should this be done in trips?)
-func GetPassengerTripRecords(db *sql.DB) {
-	results, err := db.Query("Select * FROM ridesharing_db.Passengers")
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for results.Next() {
-		// map this type to the record in the table
-		var passenger Passenger
-		err = results.Scan(&passenger.PassengerID, &passenger.FirstName,
-			&passenger.LastName, &passenger.MobileNo, &passenger.EmailAdd)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		fmt.Println(passenger.PassengerID, passenger.FirstName,
-			passenger.LastName, passenger.MobileNo, passenger.EmailAdd)
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////																								////
 ////									Functions for HTTP											////
@@ -117,7 +95,6 @@ func GetPassengerTripRecords(db *sql.DB) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func passenger(w http.ResponseWriter, r *http.Request) {
 
-	params := mux.Vars(r)
 	var PassengerID string
 
 	if r.Header.Get("Content-type") == "application/json" {
@@ -150,8 +127,9 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 		//---PUT is for creating or updating
 		// existing passenger's info---
 		if r.Method == "PUT" {
-
-			fmt.Sscan(params["PassengerID"], &PassengerID)
+			//Doing the ?PassengerID=%s
+			queryParams := r.URL.Query()
+			PassengerID = queryParams["PassengerID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				json.Unmarshal(reqBody, &passengers)
@@ -160,6 +138,7 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply passenger " + " information " + "in JSON format"))
 				} else {
+					passengers.PassengerID = PassengerID
 					UpdatePassengerInfo(db, passengers)
 					w.WriteHeader(http.StatusAccepted)
 					w.Write([]byte("202 - Successfully updated passenger's information"))
@@ -191,39 +170,6 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("403 - For audit purposes, passenger account cannot be deleted."))
 	}
 }
-
-/*
-func passengertriprequest(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-type") == "application/json" {
-		// POST is for passenger to request for a trip
-		if r.Method == "PUT" {
-			// read the string sent to the service
-			var newPassengerTripRequest Passenger
-			reqBody, err := ioutil.ReadAll(r.Body)
-
-			if err == nil {
-				// convert JSON to object
-				json.Unmarshal(reqBody, &newPassengerTripRequest)
-
-				if newPassengerTripRequest.PickUpPoint == "" || newPassengerTripRequest.DropOffPoint == "" {
-					w.WriteHeader(http.StatusUnprocessableEntity)
-					w.Write([]byte("422 - Please supply passenger " + "information " + "in JSON format"))
-					return
-				} else {
-					PassengerRequestTrip(db, passengers)
-					w.WriteHeader(http.StatusAccepted)
-					w.Write([]byte("201 - Successfully updated passenger's trip"))
-				}
-			} else {
-				w.WriteHeader(
-					http.StatusUnprocessableEntity)
-				w.Write([]byte("422 - Please supply passenger information " +
-					"in JSON format"))
-			}
-		}
-	}
-}
-*/
 
 func main() {
 	// instantiate passengers

@@ -34,8 +34,7 @@ func httpPut(url string, data interface{}) (*http.Response, error) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const driverUrl = "http://localhost:5000/drivers"
-
-//const driverAvailabilityUrl = "http://localhost:5000/drivers/available"
+const driverAvailabilityUrl = "http://localhost:5000/drivers/available"
 const passengerUrl = "http://localhost:5001/passengers"
 const tripUrl = "http://localhost:5002/trips"
 
@@ -159,7 +158,6 @@ func passengerRegister() {
 }
 
 func passengerMainMenu(passenger Passenger) {
-
 	for {
 		fmt.Println("[1] Book trip")
 		fmt.Println("[2] View your trip's history")
@@ -226,11 +224,11 @@ func allPassengerTrips(passenger Passenger) {
 		trip := trips[t]
 		fmt.Println()
 		fmt.Println("Trip ID: ", trip.TripID)
+		fmt.Println("Trip Status: ", trip.TripStatus)
 		fmt.Println("Driver ID: ", trip.DriverID)
 		fmt.Println("Passenger ID: ", trip.PassengerID)
 		fmt.Println("Pick Up Postal Code: ", trip.PickUpPoint)
 		fmt.Println("Drop Off Postal Code: ", trip.DropOffPoint)
-		fmt.Println("Trip Status: ", trip.TripStatus)
 		fmt.Println()
 	}
 }
@@ -368,39 +366,43 @@ func DriverMainMenu(driver Driver) {
 //"Ongoing" when driver is assigned to trip, and
 //"Ended" when driver finished his trip
 func driverStartTrip(driver Driver) {
-	drivertrip := viewDriverTrips(driver.DriverID)
+	driverTrips := viewDriverTrips(driver.DriverID)
+	fmt.Println(driverTrips)
 	var initTripStatus Trip
 
-	for _, t := range drivertrip { //Look for trip status that is "Processing"
+	for _, t := range driverTrips { //Retrieve the values only that consists of "Processing" status of the trip for the specific driver
 		if t.TripStatus == "Processing" {
 			initTripStatus = t
 		}
 	}
 	if (initTripStatus == Trip{}) {
-		fmt.Println("No trip is currently in Processing status")
-	} else { //Update the trip status to "Ongoing"
+		fmt.Println("No processing trips found")
+	} else {
 		initTripStatus.TripStatus = "Ongoing"
 		UpdateTripInfo(initTripStatus)
+		fmt.Print()
 		fmt.Println("Trip ongoing")
 	}
 }
 
 func driverEndTrip(driver Driver) {
-	drivertrip := viewDriverTrips(driver.DriverID)
-	var initTripStatus Trip
-
-	for _, t := range drivertrip {
-		if t.TripStatus == "Ongoing" { //Look for trip status that is "Ongoing"
-			initTripStatus = t
+	driverTrips := viewDriverTrips(driver.DriverID)
+	var drivingTrip Trip
+	for _, trip := range driverTrips {
+		if trip.TripStatus == "Ongoing" {
+			drivingTrip = trip
 		}
 	}
-	if (initTripStatus == Trip{}) {
-		fmt.Println("No trip is currently in Ongoing status")
-	} else { //Update the trip status to "Ended", when the driver ended the trip
-		initTripStatus.TripStatus = "Ended"
-		UpdateTripInfo(initTripStatus)
+	if (drivingTrip == Trip{}) {
+		fmt.Println("No ongoing trips found")
+	} else {
+		drivingTrip.TripStatus = "Ended"
+		UpdateTripInfo(drivingTrip)
 		fmt.Println("Trip ended")
 	}
+
+	driver.Availability = true //Once the trip ended, set the driver availability to true
+	UpdateDriverInfo(driver)
 }
 
 func driverUpdateInformation(driver Driver) {
@@ -485,7 +487,7 @@ func viewPassengerTrips(PassengerID string) []Trip {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("No trips found")
+		fmt.Println("Passenger is not assigned to any trips")
 		return trips
 	}
 
@@ -547,7 +549,7 @@ func viewDriverTrips(DriverID string) []Trip {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("DriverID is not assigned to any trips")
+		fmt.Println("Driver is not assigned to any trips")
 		return trips
 	}
 
@@ -576,7 +578,8 @@ func CreateNewTrip(tripid string, driverid string, passengerid string, pickuppoi
 }
 
 func UpdateTripInfo(newTripInfo Trip) error {
-	url := fmt.Sprintf("%s?TripID=%s", driverUrl, newTripInfo.TripID)
+	fmt.Println()
+	url := fmt.Sprintf("%s?TripID=%s", tripUrl, newTripInfo.TripID)
 
 	_, err := httpPut(url, newTripInfo)
 	return err

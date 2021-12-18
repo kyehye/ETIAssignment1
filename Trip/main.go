@@ -29,18 +29,6 @@ type Trip struct {
 ////							Functions for MySQL Database										////
 ////																								////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Is this function needed?
-/*func SetTripStatus(db *sql.DB, t Trip) {
-	query := fmt.Sprintf("UPDATE Trips SET TripStatus='%s'",
-		t.TripStatus)
-
-	_, err := db.Query(query)
-
-	if err != nil {
-		panic(err.Error())
-	}
-}*/
-
 func CreateNewTrip(db *sql.DB, t Trip) {
 	query := fmt.Sprintf("INSERT INTO Trips VALUES ('%s', '%s', '%s', '%s', '%s', '%s')",
 		t.TripID, t.TripStatus, t.PassengerID, t.DriverID, t.PickUpPoint, t.DropOffPoint)
@@ -52,8 +40,8 @@ func CreateNewTrip(db *sql.DB, t Trip) {
 	}
 }
 
-func GetPassengerTripInfo(db *sql.DB, PassengerID string) []Trip {
-	query := fmt.Sprintf("SELECT * FROM Trips where PassengerID = '%s'", PassengerID)
+func GetTripInfo(db *sql.DB, TripID string) []Trip {
+	query := fmt.Sprintf("SELECT * FROM Trips where TripID = '%s'", TripID)
 
 	results, err := db.Query(query)
 
@@ -89,7 +77,6 @@ func UpdateTripInfo(db *sql.DB, t Trip) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func trip(w http.ResponseWriter, r *http.Request) {
 
-	params := mux.Vars(r)
 	var TripID string
 
 	if r.Header.Get("Content-type") == "application/json" {
@@ -126,20 +113,21 @@ func trip(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if r.Method == "PUT" {
-
-			fmt.Sscan(params["TripID"], &TripID)
+			queryParams := r.URL.Query()
+			TripID = queryParams["TripID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				// convert JSON to object
 				json.Unmarshal(reqBody, &trips)
 
-				if trips.TripID == "" || trips.TripStatus == "" || trips.DriverID == "" || trips.PassengerID == "" || trips.PickUpPoint == "" || trips.DropOffPoint == "" {
+				if trips.TripStatus == "" || trips.DriverID == "" || trips.PassengerID == "" || trips.PickUpPoint == "" || trips.DropOffPoint == "" {
 					w.WriteHeader(
 						http.StatusUnprocessableEntity)
 					w.Write([]byte(
 						"422 - Please supply trip " + "information " + "in JSON format"))
 					return
 				} else {
+					trips.TripID = TripID
 					UpdateTripInfo(db, trips)
 					w.WriteHeader(http.StatusAccepted)
 					w.Write([]byte("202 - Successfully updated trip's information"))
@@ -154,9 +142,9 @@ func trip(w http.ResponseWriter, r *http.Request) {
 	}
 	//Get trip's information for passenger
 	if r.Method == "GET" { //its working
-		PassengerID := r.URL.Query().Get("PassengerID")
-		fmt.Println("PassengerID: ", PassengerID)
-		trips := GetPassengerTripInfo(db, PassengerID)
+		DriverID := r.URL.Query().Get("DriverID")
+		fmt.Println("DriverID: ", DriverID)
+		trips := GetTripInfo(db, DriverID)
 
 		json.NewEncoder(w).Encode(&trips)
 	}

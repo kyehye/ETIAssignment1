@@ -44,15 +44,16 @@ func CreateNewDriver(db *sql.DB, d Driver) {
 }
 
 func UpdateDriverInfo(db *sql.DB, d Driver) {
-	query := fmt.Sprintf("UPDATE Drivers SET FirstName='%s', LastName='%s', MobileNo='%s', EmailAdd='%s', CarLicenseNo='%s' WHERE DriverID='%s'",
-		d.FirstName, d.LastName, d.MobileNo, d.EmailAdd, d.CarLicenseNo, d.DriverID)
+	fmt.Println(d)
+	query := fmt.Sprintf("UPDATE Drivers SET FirstName='%s', LastName='%s', MobileNo='%s', EmailAdd='%s', CarLicenseNo='%s', Availability=%t WHERE DriverID='%s'",
+		d.FirstName, d.LastName, d.MobileNo, d.EmailAdd, d.CarLicenseNo, d.Availability, d.DriverID)
 	_, err := db.Query(query)
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
-func DriverLogin(db *sql.DB, MobileNo string) (*Driver, string) {
+func DriverLogin(db *sql.DB, MobileNo string) (Driver, string) {
 	query := fmt.Sprintf("SELECT * FROM Drivers WHERE MobileNo = '%s'", MobileNo)
 
 	results := db.QueryRow(query)
@@ -66,30 +67,9 @@ func DriverLogin(db *sql.DB, MobileNo string) (*Driver, string) {
 		panic(err.Error())
 	}
 
-	return &drivers, errMsg
+	return drivers, errMsg
 }
 
-//func for Driver trip page
-/*
-func GetAvailableDriver(db *sql.DB) Driver {
-	query := fmt.Sprintf("SELECT * FROM Drivers WHERE Availability = %t LIMIT 1", true)
-	results, err := db.Query(query)
-	//handle error
-	if err != nil {
-		panic(err.Error)
-	}
-
-	for results.Next() {
-		// map this type to the record in the table
-		err = results.Scan(&drivers.DriverID, &drivers.FirstName,
-			&drivers.LastName, &drivers.MobileNo, &drivers.EmailAdd, &drivers.CarLicenseNo, &drivers.Availability)
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-	return drivers
-}
-*/
 func GetAvailableDriver(db *sql.DB) Driver {
 	results, err := db.Query("Select * FROM ridesharing_db.Drivers WHERE Availability = true LIMIT 1")
 
@@ -118,8 +98,8 @@ func GetAvailableDriver(db *sql.DB) Driver {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func driver(w http.ResponseWriter, r *http.Request) {
 
-	params := mux.Vars(r)
 	var DriverID string
+
 	if r.Header.Get("Content-type") == "application/json" {
 		// POST is for creating new driver
 		if r.Method == "POST" { //it works
@@ -150,15 +130,18 @@ func driver(w http.ResponseWriter, r *http.Request) {
 		// existing course---
 		if r.Method == "PUT" { //it works
 
-			fmt.Sscan(params["DriverID"], &DriverID)
+			//fmt.Sscan(params["DriverID"], &DriverID)
+			queryParams := r.URL.Query()
+			DriverID = queryParams["DriverID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				json.Unmarshal(reqBody, &drivers)
 
-				if drivers.DriverID == "" || drivers.FirstName == "" || drivers.LastName == "" || drivers.MobileNo == "" || drivers.EmailAdd == "" || drivers.CarLicenseNo == "" {
+				if drivers.FirstName == "" || drivers.LastName == "" || drivers.MobileNo == "" || drivers.EmailAdd == "" || drivers.CarLicenseNo == "" {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply driver " + " information " + "in JSON format"))
 				} else {
+					drivers.DriverID = DriverID
 					UpdateDriverInfo(db, drivers)
 					w.WriteHeader(http.StatusAccepted)
 					w.Write([]byte("202 - Successfully updated driver's information"))

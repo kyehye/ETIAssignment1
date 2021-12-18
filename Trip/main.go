@@ -112,7 +112,7 @@ func trip(w http.ResponseWriter, r *http.Request) {
 						"422 - Please supply trip " + "information " + "in JSON format"))
 					return
 				} else {
-					fmt.Println("newTrip: ", newTrip)
+					//fmt.Println("newTrip: ", newTrip)
 					newTrip.TripStatus = "Processing"
 					CreateNewTrip(db, newTrip)
 					w.WriteHeader(http.StatusCreated)

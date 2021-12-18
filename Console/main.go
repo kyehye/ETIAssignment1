@@ -34,7 +34,8 @@ func httpPut(url string, data interface{}) (*http.Response, error) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const driverUrl = "http://localhost:5000/drivers"
-const driverAvailabilityUrl = "http://localhost:5000/drivers/available"
+
+//const driverAvailabilityUrl = "http://localhost:5000/drivers/available"
 const passengerUrl = "http://localhost:5001/passengers"
 const tripUrl = "http://localhost:5002/trips"
 
@@ -65,10 +66,12 @@ type Trip struct {
 	DropOffPoint string
 }
 
+//calling for Main Menu
 func main() {
 	MainMenu()
 }
 
+//Main menu when user launch GrabnGo's Console Application
 func MainMenu() {
 	for {
 		fmt.Println("Welcome to GrabnGo!")
@@ -78,6 +81,7 @@ func MainMenu() {
 		fmt.Println("[4] Register Driver Account")
 		fmt.Println("[0] Quit")
 
+		fmt.Print("\nEnter your option: ")
 		var userInput string
 		fmt.Scanln(&userInput)
 
@@ -99,16 +103,17 @@ func MainMenu() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////[1] Passenger/////////////////////////////////////////////////																						////
+//						Main menu features for user accessing GrabnGo as Passenger					  //																						////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func passengerLogin() {
-	fmt.Print("Please enter your mobile number: ")
+	fmt.Print("Please enter your mobile number: ") //Passenger login using their mobile number
 	var mobileno string
 	fmt.Scanln(&mobileno)
 
+	//Look for registered driver with the given mobile number
 	passenger := getPassengerMobileNo(mobileno)
 	if mobileno != passenger.MobileNo {
-		fmt.Println("\nInvalid mobile number. Login failed.")
+		fmt.Println("\nInvalid mobile number. Login failed.") //If mobile number does not exist, login fail.
 	} else {
 		fmt.Printf("\nWelcome to GrabnGo Passenger, %s %s!\n", passenger.FirstName, passenger.LastName)
 		passengerMainMenu(passenger)
@@ -116,6 +121,7 @@ func passengerLogin() {
 }
 
 func passengerRegister() {
+	//Prompt passenger to enter all the required information to register
 	fmt.Print("Passenger ID: ")
 	var passengerid string
 	fmt.Scanln(&passengerid)
@@ -153,19 +159,21 @@ func passengerRegister() {
 }
 
 func passengerMainMenu(passenger Passenger) {
+
 	for {
 		fmt.Println("[1] Book trip")
-		fmt.Println("[2] View trip's history")
+		fmt.Println("[2] View your trip's history")
 		fmt.Println("[3] Update personal information")
 		fmt.Println("[0] Logout")
 
+		fmt.Print("\nEnter your option: ")
 		var userInput string
 		fmt.Scanln(&userInput)
 
 		if userInput == "1" {
 			passengerBookTrip(passenger)
 		} else if userInput == "2" {
-			passengerTrips(passenger)
+			allPassengerTrips(passenger)
 		} else if userInput == "3" {
 			passengerUpdateInformation(passenger)
 		} else if userInput == "0" {
@@ -178,7 +186,7 @@ func passengerMainMenu(passenger Passenger) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-///				  					Passenger's main menu features									 ///
+///				  						Passenger's menu features									 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Passenger book trip
 func passengerBookTrip(passenger Passenger) {
@@ -211,46 +219,20 @@ func passengerBookTrip(passenger Passenger) {
 }
 
 //View passenger trip
-func passengerTrips(passenger Passenger) {
+func allPassengerTrips(passenger Passenger) {
 	trips := viewPassengerTrips(passenger.PassengerID)
 
-	for x := len(trips) - 1; x >= 0; x-- {
-		trip := trips[x]
+	for t := len(trips) - 1; t >= 0; t-- {
+		trip := trips[t]
 		fmt.Println()
 		fmt.Println("Trip ID: ", trip.TripID)
 		fmt.Println("Driver ID: ", trip.DriverID)
 		fmt.Println("Passenger ID: ", trip.PassengerID)
 		fmt.Println("Pick Up Postal Code: ", trip.PickUpPoint)
 		fmt.Println("Drop Off Postal Code: ", trip.DropOffPoint)
+		fmt.Println("Trip Status: ", trip.TripStatus)
 		fmt.Println()
 	}
-	/*
-		x := len(trips)
-		for x >= 0 {
-			trip := trips[x]
-			fmt.Println("Trip ID: ", trip.TripID)
-			fmt.Println("Driver ID: ", trip.DriverID)
-			fmt.Println("Passenger ID: ", trip.PassengerID)
-			fmt.Println("Pick Up Postal Code: ", trip.PickUpPoint)
-			fmt.Println("Drop Off Postal Code: ", trip.DropOffPoint)
-			fmt.Println()
-		}
-	*/
-}
-
-func viewPassengerTrips(PassengerID string) []Trip {
-	var trips []Trip
-
-	url := fmt.Sprintf("%s?PassengerID=%s", tripUrl, PassengerID)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println("No trips found")
-		return trips
-	}
-
-	json.NewDecoder(resp.Body).Decode(&trips)
-	return trips
 }
 
 //Update passenger's information
@@ -287,16 +269,18 @@ func passengerUpdateInformation(passenger Passenger) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////Driver////////////////////////////////////////////////////																						////
+//						Main menu features for user accessing GrabnGo as Driver						  //																						////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func driverLogin() {
 	for {
+		//Driver login using their mobile number
 		fmt.Print("Please enter your mobile number: ")
 		var mobileno string
 		fmt.Scanln(&mobileno)
 
+		//Look for registered driver with the given mobile number
 		driver := getDriverMobileNo(mobileno)
-		if mobileno != driver.MobileNo {
+		if mobileno != driver.MobileNo { //If mobile number does not exist, login fail.
 			fmt.Println("\nInvalid mobile number. Login failed.")
 			break
 		} else {
@@ -308,6 +292,7 @@ func driverLogin() {
 }
 
 func driverRegister() {
+	//Prompt driver to enter all the required information to register
 	fmt.Print("Driver ID: ")
 	var driverid string
 	fmt.Scanln(&driverid)
@@ -350,6 +335,9 @@ func driverRegister() {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///				  						Driver's menu features										 ///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 func DriverMainMenu(driver Driver) {
 	for {
 		fmt.Println("[1] Start trip")
@@ -357,13 +345,14 @@ func DriverMainMenu(driver Driver) {
 		fmt.Println("[3] Update personal information")
 		fmt.Println("[0] Logout")
 
+		fmt.Print("\nEnter your option: ")
 		var userInput string
 		fmt.Scanln(&userInput)
 
 		if userInput == "1" {
-			//driverStartTrip()
+			driverStartTrip(driver)
 		} else if userInput == "2" {
-			//driverEndTrip()
+			driverEndTrip(driver)
 		} else if userInput == "3" {
 			driverUpdateInformation(driver)
 		} else if userInput == "0" {
@@ -372,6 +361,45 @@ func DriverMainMenu(driver Driver) {
 			fmt.Println("\nInvalid Option")
 			DriverMainMenu(driver)
 		}
+	}
+}
+
+//driverStartTrip and driverEndTrip is to set trip status from "Processing" to
+//"Ongoing" when driver is assigned to trip, and
+//"Ended" when driver finished his trip
+func driverStartTrip(driver Driver) {
+	drivertrip := viewDriverTrips(driver.DriverID)
+	var initTripStatus Trip
+
+	for _, t := range drivertrip { //Look for trip status that is "Processing"
+		if t.TripStatus == "Processing" {
+			initTripStatus = t
+		}
+	}
+	if (initTripStatus == Trip{}) {
+		fmt.Println("No trip is currently in Processing status")
+	} else { //Update the trip status to "Ongoing"
+		initTripStatus.TripStatus = "Ongoing"
+		UpdateTripInfo(initTripStatus)
+		fmt.Println("Trip ongoing")
+	}
+}
+
+func driverEndTrip(driver Driver) {
+	drivertrip := viewDriverTrips(driver.DriverID)
+	var initTripStatus Trip
+
+	for _, t := range drivertrip {
+		if t.TripStatus == "Ongoing" { //Look for trip status that is "Ongoing"
+			initTripStatus = t
+		}
+	}
+	if (initTripStatus == Trip{}) {
+		fmt.Println("No trip is currently in Ongoing status")
+	} else { //Update the trip status to "Ended", when the driver ended the trip
+		initTripStatus.TripStatus = "Ended"
+		UpdateTripInfo(initTripStatus)
+		fmt.Println("Trip ended")
 	}
 }
 
@@ -450,6 +478,21 @@ func getPassengerMobileNo(MobileNo string) Passenger {
 	return passenger
 }
 
+func viewPassengerTrips(PassengerID string) []Trip {
+	var trips []Trip
+
+	url := fmt.Sprintf("%s?PassengerID=%s", tripUrl, PassengerID)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("No trips found")
+		return trips
+	}
+
+	json.NewDecoder(resp.Body).Decode(&trips)
+	return trips
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////Driver////////////////////////////////////////////////////																						////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -482,7 +525,6 @@ func getDriverMobileNo(MobileNo string) Driver {
 	return driver
 }
 
-//rip
 func getAvailableDriver() Driver {
 	var driver Driver
 
@@ -496,6 +538,21 @@ func getAvailableDriver() Driver {
 
 	json.NewDecoder(resp.Body).Decode(&driver)
 	return driver
+}
+
+func viewDriverTrips(DriverID string) []Trip {
+	var trips []Trip
+
+	url := fmt.Sprintf("%s?DriverID=%s", tripUrl, DriverID)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("DriverID is not assigned to any trips")
+		return trips
+	}
+
+	json.NewDecoder(resp.Body).Decode(&trips)
+	return trips
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -515,5 +572,12 @@ func CreateNewTrip(tripid string, driverid string, passengerid string, pickuppoi
 	}
 
 	_, err := httpPost(url, newTrip)
+	return err
+}
+
+func UpdateTripInfo(newTripInfo Trip) error {
+	url := fmt.Sprintf("%s?TripID=%s", driverUrl, newTripInfo.TripID)
+
+	_, err := httpPut(url, newTripInfo)
 	return err
 }

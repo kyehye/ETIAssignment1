@@ -120,7 +120,7 @@ func passengerLogin() {
 }
 
 func passengerRegister() {
-	//Prompt passenger to enter all the required information to register
+	//Prompt user to enter all the required information to register as a passenger
 	fmt.Print("Passenger ID: ")
 	var passengerid string
 	fmt.Scanln(&passengerid)
@@ -157,10 +157,13 @@ func passengerRegister() {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///				  						Passenger's menu features									 ///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 func passengerMainMenu(passenger Passenger) {
 	for {
 		fmt.Println("[1] Book trip")
-		fmt.Println("[2] View your trip's history")
+		fmt.Println("[2] View all trip")
 		fmt.Println("[3] Update personal information")
 		fmt.Println("[0] Logout")
 
@@ -183,9 +186,6 @@ func passengerMainMenu(passenger Passenger) {
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-///				  						Passenger's menu features									 ///
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Passenger book trip
 func passengerBookTrip(passenger Passenger) {
 	fmt.Print("Trip ID: ")
@@ -283,14 +283,14 @@ func driverLogin() {
 			break
 		} else {
 			fmt.Printf("\nWelcome to GrabnGo Driver, %s %s!\n", driver.FirstName, driver.LastName)
-			DriverMainMenu(driver)
+			driverMainMenu(driver)
 			break
 		}
 	}
 }
 
 func driverRegister() {
-	//Prompt driver to enter all the required information to register
+	//Prompt user to enter all the required information to register as a driver
 	fmt.Print("Driver ID: ")
 	var driverid string
 	fmt.Scanln(&driverid)
@@ -336,7 +336,7 @@ func driverRegister() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///				  						Driver's menu features										 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-func DriverMainMenu(driver Driver) {
+func driverMainMenu(driver Driver) {
 	for {
 		fmt.Println("[1] Start trip")
 		fmt.Println("[2] End trip")
@@ -357,7 +357,7 @@ func DriverMainMenu(driver Driver) {
 			break
 		} else {
 			fmt.Println("\nInvalid Option")
-			DriverMainMenu(driver)
+			driverMainMenu(driver)
 		}
 	}
 }
@@ -367,41 +367,40 @@ func DriverMainMenu(driver Driver) {
 //"Ended" when driver finished his trip
 func driverStartTrip(driver Driver) {
 	driverTrips := viewDriverTrips(driver.DriverID)
-	fmt.Println(driverTrips)
+	//fmt.Println(driverTrips)
 	var initTripStatus Trip
 
 	for _, t := range driverTrips { //Retrieve the values only that consists of "Processing" status of the trip for the specific driver
 		if t.TripStatus == "Processing" {
-			initTripStatus = t
+			initTripStatus = t //Stored in the list to update the Trip Status
 		}
 	}
-	if (initTripStatus == Trip{}) {
+	if (initTripStatus == Trip{}) { //Check the list, if previously the list did not store any Trip Status consisting of "Processing", it will print the following message.
 		fmt.Println("No processing trips found")
 	} else {
-		initTripStatus.TripStatus = "Ongoing"
+		initTripStatus.TripStatus = "Ongoing" //update Trip Status from "Processing" to "Ongoing"
 		UpdateTripInfo(initTripStatus)
-		fmt.Print()
 		fmt.Println("Trip ongoing")
 	}
 }
 
 func driverEndTrip(driver Driver) {
 	driverTrips := viewDriverTrips(driver.DriverID)
-	var drivingTrip Trip
-	for _, trip := range driverTrips {
-		if trip.TripStatus == "Ongoing" {
-			drivingTrip = trip
+	var initTripStatus Trip
+	for _, t := range driverTrips { //Retrieve the values only that consists of "Ongoing" status of the trip for the specific driver
+		if t.TripStatus == "Ongoing" {
+			initTripStatus = t //Stored in the list to update the Trip Status
 		}
 	}
-	if (drivingTrip == Trip{}) {
+	if (initTripStatus == Trip{}) { //Check the list, if previously the list did not store any Trip Status consisting of "Ongoing", it will print the following message.
 		fmt.Println("No ongoing trips found")
 	} else {
-		drivingTrip.TripStatus = "Ended"
-		UpdateTripInfo(drivingTrip)
+		initTripStatus.TripStatus = "Ended" //update Trip Status from "Ongoing" to "Ended"
+		UpdateTripInfo(initTripStatus)
 		fmt.Println("Trip ended")
 	}
 
-	driver.Availability = true //Once the trip ended, set the driver availability to true
+	driver.Availability = true //Once the trip ended, update the driver availability to true, in order to accept other Trip Booking made by other passengers
 	UpdateDriverInfo(driver)
 }
 

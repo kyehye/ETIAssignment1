@@ -4,11 +4,12 @@
 ## Design consideration for Microservices
 
 GrabnGo is created based on three different microservices: `Driver`, `Passenger`, `Trip`.
+
 Consideration #1: Independent microservice
-They, each run independently from one and other as a microservice. Capable of CRUD, the four main functions considered necessary to implement a persistent storage application, `create`, `read`, `update`, `delete`. However, in this project, `delete` is removed due to audit purposes.
+>They, each run independently from one and other as a microservice. Capable of CRUD, the four main functions considered necessary to implement a persistent storage application, `create`, `read`, `update`, `delete`. However, in this project, `delete` is removed due to audit purposes.
 
 Consideration #2: Loosely coupled microservices
-In GrabnGo, the microservices are decoupled from each other, as the microservices handles easy task and logic. Hence, there is not a need for dependency of the microservices and would require the user to call from each microservices API to request/receive inputs from the respective microservice it is calling. 
+>In GrabnGo, the microservices are decoupled from each other, as the microservices handles easy task and logic. Hence, there is not a need for dependency of the microservices and would require the user to call from each microservices API to request/receive inputs from the respective microservice it is calling. 
 
 ## Microservice Architecture Diagram
 ![Architecture Diagram](./architecturediagram.PNG)
@@ -40,7 +41,7 @@ cd Trip
 ```
 For each respective terminal...
 
-Then, run main.go in each of "Microservice" folder
+Then, run main.go in each of the respective "Microservice" folder
 ```
 go run main.go
 ```
@@ -58,6 +59,7 @@ go run main.go
 
 ### 4. Sample of initial start up of Microservices and Console Application
 You should be able to see the following if the microservices/console are running:
+> If you do not see the following, Console Application will not work. Microservices must be up and running!
 
 Microservices
 ```
@@ -79,5 +81,6 @@ Enter your option:
 ```
 
 ### 5. Additional information on Project Assignment
-In this project, `string` format is used across all database implementation for `mysql` for the whole project. Hence, steps taken may be undesirable and redundant. 
->Do take kindly take note...  
+>Do take kindly take note...
+In this project, the format `string` is used across all database implementation for `mysql` for the whole project. Hence, steps taken may be undesirable and redundant, some of the functions requires the user to key in the required ID for the specific microservice. All required features are implemented based on the ETI Assignment  
+  

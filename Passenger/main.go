@@ -12,7 +12,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//Global variable for microservice passenger
 var passengers Passenger
+
 var db *sql.DB
 
 type Passenger struct { // map this type to the record in the table
@@ -28,7 +30,7 @@ type Passenger struct { // map this type to the record in the table
 ////							Functions for MySQL Database										////
 ////																								////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Edit existing passenger information in DB
+//Registering new passenger
 func CreateNewPassenger(db *sql.DB, p Passenger) {
 	query := fmt.Sprintf("INSERT INTO Passengers VALUES ('%s', '%s', '%s', '%s', '%s')",
 		p.PassengerID, p.FirstName, p.LastName, p.MobileNo, p.EmailAdd)
@@ -40,6 +42,7 @@ func CreateNewPassenger(db *sql.DB, p Passenger) {
 	}
 }
 
+//Updating existing passenger information
 func UpdatePassengerInfo(db *sql.DB, p Passenger) {
 	query := fmt.Sprintf("UPDATE Passengers SET FirstName='%s', LastName='%s', MobileNo='%s', EmailAdd='%s' WHERE PassengerID='%s'",
 		p.FirstName, p.LastName, p.MobileNo, p.EmailAdd, p.PassengerID)
@@ -49,6 +52,7 @@ func UpdatePassengerInfo(db *sql.DB, p Passenger) {
 	}
 }
 
+//Passenger using mobile phone number to login
 func PassengerLogin(db *sql.DB, MobileNo string) (Passenger, string) {
 	query := fmt.Sprintf("SELECT * FROM Passengers WHERE MobileNo = '%s'", MobileNo)
 
@@ -64,28 +68,6 @@ func PassengerLogin(db *sql.DB, MobileNo string) (Passenger, string) {
 	}
 
 	return passengers, errMsg
-}
-
-//Get passenger's information
-func GetPassengerInfo(db *sql.DB) {
-	results, err := db.Query("Select * FROM ridesharing_db.Passengers")
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for results.Next() {
-		// map this type to the record in the table
-		var passenger Passenger
-		err = results.Scan(&passenger.PassengerID, &passenger.FirstName,
-			&passenger.LastName, &passenger.MobileNo, &passenger.EmailAdd)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		fmt.Println(passenger.PassengerID, passenger.FirstName,
-			passenger.LastName, passenger.MobileNo, passenger.EmailAdd)
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,13 +89,13 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				// convert JSON to object
 				json.Unmarshal(reqBody, &newPassenger)
-
+				//Check if user fill up the required information for registering Passenger's account
 				if newPassenger.PassengerID == "" || newPassenger.FirstName == "" || newPassenger.LastName == "" || newPassenger.MobileNo == "" || newPassenger.EmailAdd == "" {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply passenger " + "information " + "in JSON format"))
 					return
 				} else {
-					CreateNewPassenger(db, newPassenger)
+					CreateNewPassenger(db, newPassenger) //Once everything is checked, passenger's account will be created
 					w.WriteHeader(http.StatusCreated)
 					w.Write([]byte("201 - Successfully created passenger's account"))
 				}
@@ -124,16 +106,14 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 					"in JSON format"))
 			}
 		}
-		//---PUT is for creating or updating
-		// existing passenger's info---
+		//---PUT is for creating or updating existing passenger---
 		if r.Method == "PUT" {
-			//Doing the ?PassengerID=%s
-			queryParams := r.URL.Query()
+			queryParams := r.URL.Query() //used to resolve the conflict of calling API using the '%s'?PassengerID='%s' method
 			PassengerID = queryParams["PassengerID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				json.Unmarshal(reqBody, &passengers)
-
+				//Check if user fill up the required information for updating Passenger's account information
 				if passengers.FirstName == "" || passengers.LastName == "" || passengers.MobileNo == "" || passengers.EmailAdd == "" {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply passenger " + " information " + "in JSON format"))
@@ -151,7 +131,7 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-	//Get passenger's information
+	//---GET is used to get existing passenger's information such as mobile phone number to login
 	if r.Method == "GET" { //its working
 		MobileNo := r.URL.Query().Get("MobileNo")
 		fmt.Println("MobileNo: ", MobileNo)
@@ -165,9 +145,10 @@ func passenger(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(&passengers)
 		}
 	}
+	//---Deny any deletion of passenger's account or other passenger's information
 	if r.Method == "DELETE" {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - For audit purposes, passenger account cannot be deleted."))
+		w.Write([]byte("403 - For audit purposes, passenger's account cannot be deleted."))
 	}
 }
 
@@ -180,9 +161,8 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-
+	//handle the API connection across all three microservices, Passengers, Trips and Drivers
 	router := mux.NewRouter()
-
 	router.HandleFunc("/passengers", passenger).Methods(
 		"GET", "POST", "PUT", "DELETE")
 	fmt.Println("Passenger microservice API --> Listening at port 5001")

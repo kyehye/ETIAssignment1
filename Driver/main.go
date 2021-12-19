@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//Global variable for microservice driver
 var drivers Driver
 var db *sql.DB
 
@@ -31,7 +32,7 @@ type Driver struct { // map this type to the record in the table
 ////																								////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // func for Driver's page
-
+//Registering new driver
 func CreateNewDriver(db *sql.DB, d Driver) {
 	query := fmt.Sprintf("INSERT INTO Drivers VALUES ('%s', '%s', '%s','%s', '%s', '%s', %t)",
 		d.DriverID, d.FirstName, d.LastName, d.MobileNo, d.EmailAdd, d.CarLicenseNo, d.Availability)
@@ -43,6 +44,7 @@ func CreateNewDriver(db *sql.DB, d Driver) {
 	}
 }
 
+//Updating existing driver information
 func UpdateDriverInfo(db *sql.DB, d Driver) {
 	fmt.Println(d)
 	query := fmt.Sprintf("UPDATE Drivers SET FirstName='%s', LastName='%s', MobileNo='%s', EmailAdd='%s', CarLicenseNo='%s', Availability=%t WHERE DriverID='%s'",
@@ -53,6 +55,7 @@ func UpdateDriverInfo(db *sql.DB, d Driver) {
 	}
 }
 
+//Driver using mobile phone number to login
 func DriverLogin(db *sql.DB, MobileNo string) (Driver, string) {
 	query := fmt.Sprintf("SELECT * FROM Drivers WHERE MobileNo = '%s'", MobileNo)
 
@@ -70,14 +73,15 @@ func DriverLogin(db *sql.DB, MobileNo string) (Driver, string) {
 	return drivers, errMsg
 }
 
+//Get available driver for trip booking of passenger
 func GetAvailableDriver(db *sql.DB) Driver {
-	results, err := db.Query("Select * FROM ridesharing_db.Drivers WHERE Availability = true LIMIT 1")
+	results, err := db.Query("Select * FROM ridesharing_db.Drivers WHERE Availability = true LIMIT 1") //Limit only 1 driver at a time for each trip booking.
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	for results.Next() {
+	for results.Next() { //Search for an available driver.
 		// map this type to the record in the table
 		err = results.Scan(&drivers.DriverID, &drivers.FirstName,
 			&drivers.LastName, &drivers.MobileNo, &drivers.EmailAdd, &drivers.CarLicenseNo, &drivers.Availability)
@@ -97,12 +101,11 @@ func GetAvailableDriver(db *sql.DB) Driver {
 ////																								////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 func driver(w http.ResponseWriter, r *http.Request) {
-
 	var DriverID string
 
 	if r.Header.Get("Content-type") == "application/json" {
 		// POST is for creating new driver
-		if r.Method == "POST" { //it works
+		if r.Method == "POST" {
 			// read the string sent to the service
 			var newDriver Driver
 			reqBody, err := ioutil.ReadAll(r.Body)
@@ -110,13 +113,13 @@ func driver(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				// convert JSON to object
 				json.Unmarshal(reqBody, &newDriver)
-
+				//Check if user fill up the required information for registering Driver's account
 				if newDriver.DriverID == "" || newDriver.FirstName == "" || newDriver.LastName == "" || newDriver.MobileNo == "" || newDriver.EmailAdd == "" || newDriver.CarLicenseNo == "" {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply driver " + "information " + "in JSON format"))
 					return
 				} else {
-					CreateNewDriver(db, newDriver)
+					CreateNewDriver(db, newDriver) //Once everything is checked, driver's account will be created
 					w.WriteHeader(http.StatusCreated)
 					w.Write([]byte("201 - Successfully created driver's information"))
 				}
@@ -126,17 +129,14 @@ func driver(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("422 - Please supply driver" + "information" + "in JSON format"))
 			}
 		}
-		//---PUT is for creating or updating
-		// existing course---
-		if r.Method == "PUT" { //it works
-
+		//---PUT is for creating or updating existing driver---
+		if r.Method == "PUT" {
 			//fmt.Sscan(params["DriverID"], &DriverID)
-			queryParams := r.URL.Query()
+			queryParams := r.URL.Query() //used to resolve the conflict of calling API using the '%s'?Driver='%s' method
 			DriverID = queryParams["DriverID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				json.Unmarshal(reqBody, &drivers)
-
 				if drivers.FirstName == "" || drivers.LastName == "" || drivers.MobileNo == "" || drivers.EmailAdd == "" || drivers.CarLicenseNo == "" {
 					w.WriteHeader(http.StatusUnprocessableEntity)
 					w.Write([]byte("422 - Please supply driver " + " information " + "in JSON format"))
@@ -153,8 +153,8 @@ func driver(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	//---GET is get existing driver's information in order to login
-	if r.Method == "GET" { //its working
+	//---GET is used to get existing driver's information such as mobile phone number to login
+	if r.Method == "GET" {
 		MobileNo := r.URL.Query().Get("MobileNo")
 		fmt.Println("MobileNo: ", MobileNo)
 		drivers, errMsg := DriverLogin(db, MobileNo)
@@ -167,14 +167,15 @@ func driver(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(&drivers)
 		}
 	}
+	//---Deny any deletion of driver's account or other driver's information
 	if r.Method == "DELETE" {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - For audit purposes, driver account cannot be deleted."))
+		w.Write([]byte("403 - For audit purposes, driver's account cannot be deleted."))
 	}
 }
 
+//---GET is used retrieve available driver to assign to trip based on driver.Availability
 func getavailabledriver(w http.ResponseWriter, r *http.Request) {
-	//Get available
 	if r.Method == "GET" {
 		driver := GetAvailableDriver(db)
 		fmt.Println(driver)
@@ -192,7 +193,7 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-
+	//handle the API connection across all three microservices, Passengers, Trips and Drivers
 	router := mux.NewRouter()
 	router.HandleFunc("/drivers", driver).Methods(
 		"GET", "PUT", "POST", "DELETE")

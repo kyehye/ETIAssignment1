@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//Global variable for microservice trip
 var trips Trip
 var db *sql.DB
 
@@ -53,10 +54,11 @@ func GetTripInfo(db *sql.DB, TripID string) []Trip {
 		var newTrip Trip
 		err = results.Scan(&newTrip.TripID, &newTrip.TripStatus, &newTrip.PassengerID, &newTrip.DriverID, &newTrip.PickUpPoint, &newTrip.DropOffPoint)
 		if err != nil {
+			s
 			panic(err.Error())
 		}
 
-		trips = append(trips, newTrip)
+		trips = append(trips, newTrip) //Store them in a list and use if required. --> var trips []Trip
 	}
 	return trips
 }
@@ -80,18 +82,15 @@ func trip(w http.ResponseWriter, r *http.Request) {
 	var TripID string
 
 	if r.Header.Get("Content-type") == "application/json" {
-
 		//Create a new trip
 		if r.Method == "POST" {
-
 			// read the string sent to the service
 			var newTrip Trip
 			reqBody, err := ioutil.ReadAll(r.Body)
-
 			if err == nil {
 				// convert JSON to object
 				json.Unmarshal(reqBody, &newTrip)
-
+				//Check if user fill up the required information for creating Trip
 				if newTrip.TripID == "" || newTrip.PassengerID == "" || newTrip.DriverID == "" || newTrip.PickUpPoint == "" || newTrip.DropOffPoint == "" {
 					w.WriteHeader(
 						http.StatusUnprocessableEntity)
@@ -100,8 +99,8 @@ func trip(w http.ResponseWriter, r *http.Request) {
 					return
 				} else {
 					//fmt.Println("newTrip: ", newTrip)
-					newTrip.TripStatus = "Processing"
-					CreateNewTrip(db, newTrip)
+					newTrip.TripStatus = "Processing" //Set trip as "Processing" while looking for available driver to accept/start trip.
+					CreateNewTrip(db, newTrip)        //Once everything is checked, trip will be created
 					w.WriteHeader(http.StatusCreated)
 					w.Write([]byte("201 - Successfully created trip"))
 				}
@@ -112,14 +111,15 @@ func trip(w http.ResponseWriter, r *http.Request) {
 					"in JSON format"))
 			}
 		}
+		//---PUT is for creating or updating existing trip---
 		if r.Method == "PUT" {
-			queryParams := r.URL.Query()
+			queryParams := r.URL.Query() //used to resolve the conflict of calling API using the '%s'?TripID='%s' method
 			TripID = queryParams["TripID"][0]
 			reqBody, err := ioutil.ReadAll(r.Body)
 			if err == nil {
 				// convert JSON to object
 				json.Unmarshal(reqBody, &trips)
-
+				//Check if user fill up the required information for updating Trip's information
 				if trips.TripStatus == "" || trips.DriverID == "" || trips.PassengerID == "" || trips.PickUpPoint == "" || trips.DropOffPoint == "" {
 					w.WriteHeader(
 						http.StatusUnprocessableEntity)
@@ -140,7 +140,7 @@ func trip(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	//Get trip's information for passenger
+	//Get trip's information based on Driver's DriverID
 	if r.Method == "GET" { //its working
 		DriverID := r.URL.Query().Get("DriverID")
 		fmt.Println("DriverID: ", DriverID)
@@ -148,6 +148,7 @@ func trip(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(&trips)
 	}
+	//---Deny any deletion of trip's information
 	if r.Method == "DELETE" {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("403 - For audit purposes, trip's information cannot be deleted."))
@@ -164,7 +165,7 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-
+	//handle the API connection across all three microservices, Passengers, Trips and Drivers
 	router := mux.NewRouter()
 	router.HandleFunc("/trips", trip).Methods(
 		"GET", "PUT", "POST", "DELETE")

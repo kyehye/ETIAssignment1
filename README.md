@@ -83,4 +83,10 @@ Enter your option:
 ### 5. Additional information on Project Assignment
 >Do take kindly take note...
 In this project, the format `string` is used across all database implementation for `mysql` for the whole project. Hence, steps taken may be undesirable and redundant, some of the functions requires the user to key in the required ID for the specific microservice. All required features are implemented based on the ETI Assignment  
+
+### 6. Not workable/fully workable features
+#### UPDATES: The features was able to work when tested individually, however due to some error on the backend, which I tried to troubleshoot it does not work properly... 
+-View passenger's trip in reverse chronological order (Not fully workable)
+-Driver's End Trip does not set its availability to true (Not Workable)
+
   

@@ -54,10 +54,9 @@ func GetTripInfo(db *sql.DB, TripID string) []Trip {
 		var newTrip Trip
 		err = results.Scan(&newTrip.TripID, &newTrip.TripStatus, &newTrip.PassengerID, &newTrip.DriverID, &newTrip.PickUpPoint, &newTrip.DropOffPoint)
 		if err != nil {
-			s
+
 			panic(err.Error())
 		}
-
 		trips = append(trips, newTrip) //Store them in a list and use if required. --> var trips []Trip
 	}
 	return trips
@@ -140,18 +139,27 @@ func trip(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	//Get trip's information based on Driver's DriverID
 	if r.Method == "GET" { //its working
+		PassengerID := r.URL.Query().Get("PassengerID")
+		fmt.Println("PassengerID: ", PassengerID)
+		trips := GetTripInfo(db, PassengerID)
+
+		json.NewEncoder(w).Encode(&trips)
+	}
+	//Get trip's information based on Driver's DriverID
+	//---Deny any deletion of trip's information
+	if r.Method == "DELETE" {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - For audit purposes, trip's information cannot be deleted."))
+	}
+}
+func getdriverid(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 		DriverID := r.URL.Query().Get("DriverID")
 		fmt.Println("DriverID: ", DriverID)
 		trips := GetTripInfo(db, DriverID)
 
 		json.NewEncoder(w).Encode(&trips)
-	}
-	//---Deny any deletion of trip's information
-	if r.Method == "DELETE" {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("403 - For audit purposes, trip's information cannot be deleted."))
 	}
 }
 
@@ -169,6 +177,8 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/trips", trip).Methods(
 		"GET", "PUT", "POST", "DELETE")
+	router.HandleFunc("/trips/driver", getdriverid).Methods(
+		"GET")
 	fmt.Println("Trip microservice API --> Listening at port 5002")
 	log.Fatal(http.ListenAndServe(":5002", router))
 

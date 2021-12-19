@@ -37,6 +37,7 @@ const driverUrl = "http://localhost:5000/drivers"
 const driverAvailabilityUrl = "http://localhost:5000/drivers/available"
 const passengerUrl = "http://localhost:5001/passengers"
 const tripUrl = "http://localhost:5002/trips"
+const tripGetDriverIDUrl = "http://localhost:5002/trips/driver"
 
 type Passenger struct {
 	PassengerID string
@@ -220,7 +221,7 @@ func passengerBookTrip(passenger Passenger) {
 func allPassengerTrips(passenger Passenger) {
 	trips := viewPassengerTrips(passenger.PassengerID)
 
-	for t := len(trips) - 1; t >= 0; t-- {
+	for t := len(trips) - 1; t >= 0; t-- { //Look for
 		trip := trips[t]
 		fmt.Println()
 		fmt.Println("Trip ID: ", trip.TripID)
@@ -399,9 +400,6 @@ func driverEndTrip(driver Driver) {
 		UpdateTripInfo(initTripStatus)
 		fmt.Println("Trip ended")
 	}
-
-	driver.Availability = true //Once the trip ended, update the driver availability to true, in order to accept other Trip Booking made by other passengers
-	UpdateDriverInfo(driver)
 }
 
 func driverUpdateInformation(driver Driver) {
@@ -544,7 +542,7 @@ func getAvailableDriver() Driver {
 func viewDriverTrips(DriverID string) []Trip {
 	var trips []Trip
 
-	url := fmt.Sprintf("%s?DriverID=%s", tripUrl, DriverID)
+	url := fmt.Sprintf("%s?DriverID=%s", tripGetDriverIDUrl, DriverID)
 
 	resp, err := http.Get(url)
 	if err != nil {
